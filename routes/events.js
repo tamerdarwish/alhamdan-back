@@ -17,6 +17,27 @@ router.get('/:id', async (req, res) => {
   res.json(data);
 });
 
+// الحصول على مناسبة واحدة حسب كود الوصول
+router.get('/by-code/:access_code', async (req, res) => {
+  const { access_code } = req.params;
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .eq('access_code', access_code)
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+  
+  if (!data) {
+    return res.status(404).json({ error: 'Event not found' });
+  }
+
+  res.json(data);
+});
+
+
 // إنشاء مناسبة جديدة
 router.post('/', async (req, res) => {
   const { name, date, main_image, drive_link, access_code, watermark_setting ,album} = req.body;
@@ -82,5 +103,57 @@ router.delete('/:id', async (req, res) => {
   if (error) return res.status(500).json(error);
   res.json({ message: 'Event deleted' });
 });
+
+// تحديث حالة الطباعة لصورة معينة في الألبوم
+// تحديث حالة الطباعة لصورة في الألبوم
+router.put('/:eventId/album/:imageId', async (req, res) => {
+  const { eventId, imageId } = req.params;
+  const { printStatus } = req.body;
+
+  try {
+    const { data: event, error: fetchError } = await supabase
+      .from('events')
+      .select('album')
+      .eq('id', eventId)
+      .single();
+
+    if (fetchError) {
+      return res.status(500).json({ error: 'Failed to fetch event' });
+    }
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    // تحويل سلاسل JSON إلى كائنات
+    const album = event.album.map(image => JSON.parse(image));
+
+    const updatedAlbum = album.map((image) => {
+      if (image.id === imageId) {
+        return { ...image, printStatus }; // تحديث حالة الطباعة
+      }
+      return image;
+    });
+
+    // تحويل الكائنات مرة أخرى إلى سلاسل JSON
+    const updatedAlbumJSON = updatedAlbum.map(image => JSON.stringify(image));
+
+    const { data, error: updateError } = await supabase
+      .from('events')
+      .update({ album: updatedAlbumJSON })
+      .eq('id', eventId)
+      .select('*')
+      .single();
+
+    if (updateError) {
+      return res.status(500).json({ error: 'Failed to update album' });
+    }
+
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 module.exports = router;
