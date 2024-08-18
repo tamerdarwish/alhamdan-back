@@ -28,6 +28,7 @@ router.put('/:id/select', async (req, res) => {
   res.json(data);
 });
 
+
 // Delete a photo
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
