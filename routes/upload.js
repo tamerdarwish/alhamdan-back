@@ -2,6 +2,12 @@ const express = require('express');
 const multer = require('multer');
 const { supabase } = require('../supabaseClient'); // تأكد من مسار supabaseClient الصحيح
 const { v4: uuidv4 } = require('uuid');
+const { Readable } = require('stream');
+const path = require('path');
+const sharp = require('sharp');
+
+
+
 
 
 const router = express.Router();
@@ -12,6 +18,37 @@ const upload = multer({
   storage
 });
 require('dotenv').config();
+
+router.post('/', upload.single('file'), async (req, res) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+  
+      const { buffer, originalname, mimetype } = file;
+      const fileName = `${uuidv4()}_${originalname}`;
+  
+      // رفع الصورة إلى Supabase
+      const { data, error } = await supabase.storage
+        .from('images')
+        .upload(fileName, buffer, { contentType: mimetype });
+  
+      if (error) {
+        console.error('Error uploading to Supabase:', error);
+        return res.status(500).json({ success: false, message: 'Failed to upload image to Supabase' });
+      }
+  
+      // استرجاع رابط الملف المرفوع من Supabase
+      const fileUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/images/${fileName}`;
+      
+      res.status(200).json({ success: true, url: fileUrl });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      res.status(500).json({ success: false, message: 'Error uploading file' });
+    }
+  });
+  
 // نقطة النهاية لرفع صورة الألبوم
 router.post('/:eventId/add-images', upload.array('images', 999), async (req, res) => {
   try {
@@ -134,7 +171,6 @@ router.delete('/:eventId/delete-image', async (req, res) => {
 });
 
 
-
 // نقطة النهاية لحذف مجموعة من الصور من الألبوم
 router.delete('/:eventId/delete-images', async (req, res) => {
   try {
@@ -198,5 +234,122 @@ router.delete('/:eventId/delete-images', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to delete images' });
   }
 });
+
+
+  // نقطة النهاية لحفظ العلامة المائية
+  router.post('/watermark/:fileName', async (req, res) => {
+    
+    try {
+      console.log('Endpoint hit'); // تأكيد وصول الطلب
+  
+      const { fileName } = req.params;
+      const { watermark } = req.body; // استلام watermark من الجسم (body)
+  
+      // التحقق من صحة قيمة watermark
+      const validWatermarkSettings = ['0', '1', '2'];
+      if (!validWatermarkSettings.includes(watermark)) {
+        console.log('Invalid watermark setting:', watermark);
+        return res.status(400).json({ success: false, message: 'Invalid watermark setting' });
+      }
+  
+      // تحميل الصورة الأصلية من Supabase باستخدام fetch
+      const response = await fetch(`${process.env.SUPABASE_URL}/storage/v1/object/public/images/${fileName}`);
+  
+      if (!response.ok) {
+        throw new Error('Failed to fetch image from Supabase');
+      }
+  
+      // تحويل الـ Response إلى Buffer
+      const fileStream = await response.arrayBuffer();
+      let imageBuffer = Buffer.from(fileStream);
+  
+      // إضافة العلامة المائية بناءً على watermarkSetting
+      if (watermark === '1' || watermark === '2') {
+        console.log('Adding watermark:', watermark);
+        const watermarkPath = path.join(__dirname, '../logo.png'); // تعديل المسار حسب موقع الملف
+        const watermarkImage = await sharp(watermarkPath);
+  
+        if (watermark === '1') {
+          // وضع العلامة المائية على طرف الصورة
+          imageBuffer = await sharp(imageBuffer)
+            .composite([{ input: await watermarkImage.toBuffer(), gravity: 'southeast' }])
+            .toBuffer();
+        } else if (watermark === '2') {
+          // تغطية الصورة بالكامل بالعلامة المائية
+          const watermarkResized = await watermarkImage
+            .resize({ width: 200, height: 200 })
+            .toBuffer();
+  
+          imageBuffer = await sharp(imageBuffer)
+            .composite([{ input: watermarkResized, tile: true, gravity: 'centre', blend: 'overlay' }])
+            .toBuffer();
+        }
+      }
+  
+      console.log('Watermark setting:', watermark);
+      console.log('Image Buffer length:', imageBuffer.length);
+  
+      // تعيين نوع المحتوى وإرسال الصورة المعدلة
+      res.set('Content-Type', 'image/jpeg');
+      res.send(imageBuffer);
+    } catch (error) {
+      console.error('Error processing download:', error);
+      res.status(500).json({ success: false, message: 'Error downloading image' });
+    }
+  });
+
+  router.post('/upload', upload.array('images'), async (req, res) => {
+    try {
+      const watermarkSetting = req.body.watermark; // استلام watermark من الجسم (body)
+  
+      // التحقق من صحة قيمة watermark
+      const validWatermarkSettings = ['0', '1', '2'];
+      if (!validWatermarkSettings.includes(watermarkSetting)) {
+        return res.status(400).json({ success: false, message: 'Invalid watermark setting' });
+      }
+  
+      const results = [];
+  
+      for (const file of req.files) {
+        // إضافة العلامة المائية بناءً على watermarkSetting
+        let imageBuffer = file.buffer;
+  
+        if (watermarkSetting === '1' || watermarkSetting === '2') {
+          const watermarkPath = path.join(__dirname, '../logo.png'); // تعديل المسار حسب موقع الملف
+          const watermarkImage = await sharp(watermarkPath);
+  
+          if (watermarkSetting === '1') {
+            // وضع العلامة المائية على طرف الصورة
+            imageBuffer = await sharp(imageBuffer)
+              .composite([{ input: await watermarkImage.toBuffer(), gravity: 'southeast' }])
+              .toBuffer();
+          } else if (watermarkSetting === '2') {
+            // تغطية الصورة بالكامل بالعلامة المائية
+            const watermarkResized = await watermarkImage
+              .resize({ width: 200, height: 200 })
+              .toBuffer();
+  
+            imageBuffer = await sharp(imageBuffer)
+              .composite([{ input: watermarkResized, tile: true, gravity: 'centre', blend: 'overlay' }])
+              .toBuffer();
+          }
+        }
+  
+        // أضف الصورة المعدلة إلى النتائج
+        results.push({
+          originalName: file.originalname,
+          modifiedImageBuffer: imageBuffer
+        });
+      }
+  
+      // إرسال الصور المعدلة كاستجابة
+      res.json({ success: true, results });
+    } catch (error) {
+      console.error('Error processing upload:', error);
+      res.status(500).json({ success: false, message: 'Error processing images' });
+    }
+  });
+  
+  
 
 module.exports = router;

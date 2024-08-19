@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const adminRoutes = require('./routes/adminRoutes');
-const uploadRoutes = require('./routes/upload');
 
 
 // Load environment variables
@@ -20,6 +19,8 @@ const eventsRouter = require('./routes/events');
 const photosRouter = require('./routes/photos');
 const usersRouter = require('./routes/users');
 const ordersRouter = require('./routes/orders');
+const uploadRoutes = require('./routes/upload');
+
 
 
 // Use routes
