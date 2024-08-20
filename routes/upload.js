@@ -353,7 +353,6 @@ router.delete('/:eventId/delete-images', async (req, res) => {
 
 // نقطة النهاية لتحديث الصورة الرئيسية
 router.post('/update-main-image/:eventId', upload.single('file'), async (req, res) => {
-    console.log('ddd');
     
     try {
       const { eventId } = req.params;
