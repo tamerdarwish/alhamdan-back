@@ -3,13 +3,13 @@ const router = express.Router();
 const { supabase } = require('../supabaseClient');
 
 // Get all products
-router.get('/', async (req, res) => {
+/*router.get('/', async (req, res) => {
     
   const { data, error } = await supabase.from('products').select('*');
   if (error) return res.status(500).json(error);
 
   res.json(data);
-});
+});*/
 
 // Get a single product by ID
 router.get('/:id', async (req, res) => {
@@ -48,5 +48,38 @@ router.delete('/:id', async (req, res) => {
   if (error) return res.status(500).json(error);
   res.json({ message: 'Product deleted' });
 });
+
+// Get all products with pagination and search
+router.get('/', async (req, res) => {
+    try {
+      const { page = 1, limit = 16, search = '' } = req.query;
+      const offset = (page - 1) * limit;
+      const limitNum = parseInt(limit, 10); // التأكد من أن limit هو عدد صحيح
+  
+      // استعلام للحصول على العناصر
+      const { data: products, error: fetchError } = await supabase
+        .from('products')
+        .select('*')
+        .ilike('name', `%${search}%`)
+        .range(offset, offset + limitNum - 1);
+  
+      // استعلام للحصول على عدد العناصر الكلي
+      const { count, error: countError } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .ilike('name', `%${search}%`);
+  
+      if (fetchError || countError) {
+        console.error('Supabase query error:', fetchError || countError);
+        return res.status(500).json({ error: 'Internal Server Error' });
+      }
+  
+      res.json({ products, total: count });
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+  
 
 module.exports = router;

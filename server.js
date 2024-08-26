@@ -10,8 +10,10 @@ dotenv.config();
 const app = express();
 
 // Use CORS middleware
-app.use(cors());
-
+app.use(cors({
+    origin: 'http://localhost:3000', // استبدل هذا بالنطاق الذي يستخدمه العميل
+  }));
+  
 app.use(express.json());
 
 // Import routes
