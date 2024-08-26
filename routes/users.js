@@ -29,7 +29,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const { username, password, role } = req.body;
-  const { data, error } = await supabase.from('users').update({ username, password, role }).eq('id', id);
+  const { data, error } = await supabase.from('users').update({ username, password, role }).eq('user_id', id);
   if (error) return res.status(500).json(error);
   res.json(data);
 });
