@@ -352,49 +352,45 @@ router.delete('/:eventId/delete-images', async (req, res) => {
 
 
 // نقطة النهاية لتحديث الصورة الرئيسية
-router.post('/update-main-image/:eventId', upload.single('file'), async (req, res) => {
-    
-    try {
-      const { eventId } = req.params;
-      const file = req.file;
-  
-      if (!file) {
-        return res.status(400).json({ success: false, message: 'No file uploaded' });
-      }
-  
-      const { buffer, originalname, mimetype } = file;
-      const fileName = `${uuidv4()}_${originalname}`;
-  
-      // رفع الصورة إلى Supabase
-      const { data, error } = await supabase.storage
-        .from('images')
-        .upload(fileName, buffer, { contentType: mimetype });
-  
-      if (error) {
-        console.error('Error uploading to Supabase:', error);
-        return res.status(500).json({ success: false, message: 'Failed to upload image to Supabase' });
-      }
-  
-      // استرجاع رابط الصورة الجديدة من Supabase
-      const fileUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/images/${fileName}`;
-  
-      // تحديث الرابط في قاعدة البيانات
-      const { error: updateError } = await supabase
-        .from('events')
-        .update({ main_image: fileUrl }) // تحديث حقل الصورة الرئيسية
-        .eq('id', eventId);
-  
-      if (updateError) {
-        console.error('Error updating event image:', updateError);
-        return res.status(500).json({ success: false, message: 'Failed to update event image' });
-      }
-  
-      res.status(200).json({ success: true, url: fileUrl });
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      res.status(500).json({ success: false, message: 'Error uploading file' });
-    }
-  });
+router.post('/', upload.single('image'), async (req, res) => {
+  const { name, description, price } = req.body;
+  const image = req.file;
+
+  // التحقق من وجود الصورة
+  if (!image) {
+    return res.status(400).json({ error: 'Image is required' });
+  }
+
+  // رفع الصورة إلى Supabase Storage
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from('product-images') // استبدل 'product-images' باسم الباكت الخاص بك في Supabase
+    .upload(`products/${Date.now()}_${path.basename(image.originalname)}`, fs.createReadStream(image.path), {
+      contentType: image.mimetype,
+    });
+
+  if (uploadError) {
+    fs.unlinkSync(image.path); // حذف الملف إذا حدث خطأ
+    return res.status(500).json(uploadError);
+  }
+
+  // الحصول على رابط الصورة
+  const { publicURL } = supabase.storage.from('product-images').getPublicUrl(`products/${Date.now()}_${path.basename(image.originalname)}`);
+
+  // إدخال بيانات المنتج في قاعدة البيانات
+  const { data, error } = await supabase
+    .from('products')
+    .insert([{ name, description, price, image_url: publicURL }]);
+
+  if (error) {
+    fs.unlinkSync(image.path); // حذف الملف إذا حدث خطأ
+    return res.status(500).json(error);
+  }
+
+  // حذف الملف من السيرفر بعد رفعه
+  fs.unlinkSync(image.path);
+
+  res.json({ success: true, data });
+});
   
   
 
