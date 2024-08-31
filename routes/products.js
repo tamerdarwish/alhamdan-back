@@ -23,11 +23,9 @@ const upload = multer({
 router.get('/:id', async (req, res) => {
     
   const { id } = req.params;
-  console.log(id);
 
   const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
   if (error) return res.status(500).json(error);
-  console.log(data);
 
   res.json(data);
 });
@@ -83,14 +81,6 @@ router.post('/', upload.single('image'), async (req, res) => {
     }
   });
   
-// Update an existing product
-router.put('/:id', async (req, res) => {
-  const { id } = req.params;
-  const { name, description, price, image_url } = req.body;
-  const { data, error } = await supabase.from('products').update({ name, description, price, image_url }).eq('id', id);
-  if (error) return res.status(500).json(error);
-  res.json(data);
-});
 
 // Delete a product
 router.delete('/:id', async (req, res) => {
@@ -131,5 +121,37 @@ router.get('/', async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });
+
+  // Update an existing product
+router.put('/:id', upload.single('image'), async (req, res) => {
+    console.log('UPDATEWE');
+    
+    const { id } = req.params;
+    const { name, description, price } = req.body;
+    const imageFile = req.file;
+    let imageUrl = req.body.image_url; // استخدام الصورة الحالية إذا لم يتم تحميل صورة جديدة
+  
+    try {
+      // إذا تم تحميل صورة جديدة، قم برفعها وتحديث الرابط
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile);
+      }
+  
+      // تحديث المنتج في قاعدة البيانات
+      const { data, error } = await supabase.from('products').update({
+        name,
+        description,
+        price,
+        image_url: imageUrl // تحديث رابط الصورة
+      }).eq('id', id);
+  
+      if (error) return res.status(500).json(error);
+      res.json(data);
+    } catch (err) {
+      console.error('Error updating product:', err);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+  
 
 module.exports = router;
