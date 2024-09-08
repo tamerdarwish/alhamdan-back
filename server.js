@@ -23,10 +23,7 @@ const usersRouter = require('./routes/users');
 const ordersRouter = require('./routes/orders');
 const uploadRoutes = require('./routes/upload');
 const productsRoutes = require('./routes/products');
-
-
-
-
+const contactRoutes = require('./routes/contactRoutes'); 
 
 // Use routes
 app.use('/api/events', eventsRouter);
@@ -35,6 +32,8 @@ app.use('/api/users', usersRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/products', productsRoutes);
+app.use('/api/contact', contactRoutes); 
+
 
 
 // Use admin routes
