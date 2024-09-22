@@ -353,6 +353,8 @@ router.delete('/:eventId/delete-images', async (req, res) => {
 
 // نقطة النهاية لتحديث الصورة الرئيسية
 router.post('/', upload.single('image'), async (req, res) => {
+  console.log('ss');
+  
   const { name, description, price } = req.body;
   const image = req.file;
 
@@ -393,5 +395,49 @@ router.post('/', upload.single('image'), async (req, res) => {
 });
   
   
+// نقطة النهاية لتحديث الصورة الرئيسية
+router.post('/update-main-image/:eventId', upload.single('file'), async (req, res) => {
+
+  try {
+    const { eventId } = req.params;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    const { buffer, originalname, mimetype } = file;
+    const fileName = `${uuidv4()}_${originalname}`;
+
+    // رفع الصورة إلى Supabase
+    const { data, error } = await supabase.storage
+      .from('images')
+      .upload(fileName, buffer, { contentType: mimetype });
+
+    if (error) {
+      console.error('Error uploading to Supabase:', error);
+      return res.status(500).json({ success: false, message: 'Failed to upload image to Supabase' });
+    }
+
+    // استرجاع رابط الصورة الجديدة من Supabase
+    const fileUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/images/${fileName}`;
+
+    // تحديث الرابط في قاعدة البيانات
+    const { error: updateError } = await supabase
+      .from('events')
+      .update({ main_image: fileUrl }) // تحديث حقل الصورة الرئيسية
+      .eq('id', eventId);
+
+    if (updateError) {
+      console.error('Error updating event image:', updateError);
+      return res.status(500).json({ success: false, message: 'Failed to update event image' });
+    }
+
+    res.status(200).json({ success: true, url: fileUrl });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({ success: false, message: 'Error uploading file' });
+  }
+});
 
 module.exports = router;

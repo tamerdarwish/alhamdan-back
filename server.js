@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const adminRoutes = require('./routes/adminRoutes');
 
 
 // Load environment variables
@@ -25,6 +24,9 @@ const uploadRoutes = require('./routes/upload');
 const productsRoutes = require('./routes/products');
 const contactRoutes = require('./routes/contactRoutes'); 
 const printRoutes = require('./routes/print'); 
+const adminRoutes = require('./routes/adminRoutes');
+
+
 
 
 // Use routes
@@ -36,12 +38,12 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/contact', contactRoutes); 
 app.use('/api/print', printRoutes); 
+app.use('/admin', adminRoutes);
 
 
 
 
-// Use admin routes
-app.use('/login/admin', adminRoutes);
+
 
 // Start the server
 const PORT = process.env.PORT ;

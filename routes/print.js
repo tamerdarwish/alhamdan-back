@@ -51,7 +51,8 @@ router.post('/upload', upload.array('photos'), async (req, res) => {
       .upsert({
         customer_name,
         customer_email,
-        photos: photoObjects
+        photos: photoObjects,
+        status: false
       });
 
     if (insertError) {
@@ -63,6 +64,50 @@ router.post('/upload', upload.array('photos'), async (req, res) => {
   } catch (error) {
     console.error('Error:', error);
     res.status(400).json({ error: 'حدث خطأ أثناء رفع الصور.' });
+  }
+});
+
+//ننقطة نهاية لجلب الالبومات للطباعة
+router.get('/', async (req, res) => {
+  const { data, error } = await supabase.from('customer_photos').select('*');
+  if (error) return res.status(500).json(error);
+
+  res.json(data);
+});
+
+
+// Get a single Album by ID
+router.get('/:id', async (req, res) => {
+    
+  const { id } = req.params;
+
+  const { data, error } = await supabase.from('customer_photos').select('*').eq('id', id).single();
+  if (error) return res.status(500).json(error);
+
+  res.json(data);
+});
+
+// تحديث حالة الألبوم
+router.put('/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    // تحديث الحالة في Supabase Realtime Database
+    const { data, error } = await supabase
+      .from('customer_photos')
+      .update({ status })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating album status:', error);
+      return res.status(500).json({ error: 'حدث خطأ أثناء تحديث الحالة.' });
+    }
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(400).json({ error: 'حدث خطأ أثناء تحديث الحالة.' });
   }
 });
 
