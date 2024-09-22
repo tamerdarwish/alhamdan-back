@@ -246,7 +246,7 @@ router.delete('/:eventId/delete-images', async (req, res) => {
       const { watermark } = req.body; // استلام watermark من الجسم (body)
   
       // التحقق من صحة قيمة watermark
-      const validWatermarkSettings = ['0', '1', '2'];
+      const validWatermarkSettings = ['بدون علامة مائية', 'علامة مائية جزئية', 'علامة مائية كاملة'];
       if (!validWatermarkSettings.includes(watermark)) {
         console.log('Invalid watermark setting:', watermark);
         return res.status(400).json({ success: false, message: 'Invalid watermark setting' });
@@ -264,17 +264,17 @@ router.delete('/:eventId/delete-images', async (req, res) => {
       let imageBuffer = Buffer.from(fileStream);
   
       // إضافة العلامة المائية بناءً على watermarkSetting
-      if (watermark === '1' || watermark === '2') {
+      if (watermark === 'علامة مائية جزئية' || watermark === 'علامة مائية كاملة') {
         console.log('Adding watermark:', watermark);
         const watermarkPath = path.join(__dirname, '../logo.png'); // تعديل المسار حسب موقع الملف
         const watermarkImage = await sharp(watermarkPath);
   
-        if (watermark === '1') {
+        if (watermark === 'علامة مائية جزئية') {
           // وضع العلامة المائية على طرف الصورة
           imageBuffer = await sharp(imageBuffer)
             .composite([{ input: await watermarkImage.toBuffer(), gravity: 'southeast' }])
             .toBuffer();
-        } else if (watermark === '2') {
+        } else if (watermark === 'علامة مائية كاملة') {
           // تغطية الصورة بالكامل بالعلامة المائية
           const watermarkResized = await watermarkImage
             .resize({ width: 200, height: 200 })
@@ -303,7 +303,7 @@ router.delete('/:eventId/delete-images', async (req, res) => {
       const watermarkSetting = req.body.watermark; // استلام watermark من الجسم (body)
   
       // التحقق من صحة قيمة watermark
-      const validWatermarkSettings = ['0', '1', '2'];
+      const validWatermarkSettings = ['بدون علامة مائية', 'علامة مائية جزئية', 'علامة مائية كاملة'];
       if (!validWatermarkSettings.includes(watermarkSetting)) {
         return res.status(400).json({ success: false, message: 'Invalid watermark setting' });
       }
@@ -314,7 +314,7 @@ router.delete('/:eventId/delete-images', async (req, res) => {
         // إضافة العلامة المائية بناءً على watermarkSetting
         let imageBuffer = file.buffer;
   
-        if (watermarkSetting === '1' || watermarkSetting === '2') {
+        if (watermarkSetting === 'علامة مائية جزئية' || watermarkSetting === '2') {
           const watermarkPath = path.join(__dirname, '../logo.png'); // تعديل المسار حسب موقع الملف
           const watermarkImage = await sharp(watermarkPath);
   
@@ -323,7 +323,7 @@ router.delete('/:eventId/delete-images', async (req, res) => {
             imageBuffer = await sharp(imageBuffer)
               .composite([{ input: await watermarkImage.toBuffer(), gravity: 'southeast' }])
               .toBuffer();
-          } else if (watermarkSetting === '2') {
+          } else if (watermarkSetting === 'علامة مائية كاملة') {
             // تغطية الصورة بالكامل بالعلامة المائية
             const watermarkResized = await watermarkImage
               .resize({ width: 200, height: 200 })
