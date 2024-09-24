@@ -5,19 +5,129 @@ const { v4: uuidv4 } = require('uuid');
 const { Readable } = require('stream');
 const path = require('path');
 const sharp = require('sharp');
-
-
-
+require('dotenv').config();
+const formidable = require('formidable');
 
 
 const router = express.Router();
-
 // إعداد التخزين لـ multer
 const storage = multer.memoryStorage();
 const upload = multer({
-  storage
+  storage,
+  limits: {
+    fileSize: 500* 1024 * 1024, 
+    files: 999 // أو العدد الذي تريده
+  }
 });
-require('dotenv').config();
+
+
+// نقطة النهاية لرفع صورة الألبوم
+router.post('/:eventId/add-images', upload.array('images'), async (req, res) => {
+  const { eventId } = req.params;
+  const photos = req.files;
+  const imageObjects = [];
+
+  try {
+    // التحقق من وجود الصور
+    if (!photos || photos.length === 0) {
+      return res.status(400).json({ success: false, message: 'No files uploaded' });
+    }
+
+    // جلب الألبوم الحالي للمناسبة من جدول events
+    const { data: existingEvent, error: fetchError } = await supabase
+      .from('events')
+      .select('album')
+      .eq('id', eventId)
+      .single();
+
+    if (fetchError) {
+      console.error(`Failed to fetch event album for eventId ${eventId}:`, fetchError.message);
+      throw new Error('Failed to fetch event album');
+    }
+
+    const existingAlbum = existingEvent.album || [];
+
+    // رفع الصور وحفظها ككائنات تحتوي على الرابط ومعرف فريد
+    for (let i = 0; i < photos.length; i++) {
+      const photo = photos[i];
+      const fileName = `${Date.now()}_${photo.originalname}`; // إضافة الوقت لجعل الاسم مميزاً
+      const filePath = `images/${eventId}/${fileName}`; // مسار الحفظ في باكت "images"
+
+      // التحقق مما إذا كانت الصورة موجودة بالفعل في الألبوم
+      const isAlreadyInAlbum = existingAlbum.some(img => img.url && img.url.includes(photo.originalname));
+
+      if (!isAlreadyInAlbum) {
+        // رفع الصورة إلى Supabase Storage
+        const { error: uploadError } = await supabase
+          .storage
+          .from('images')
+          .upload(filePath, photo.buffer, { contentType: photo.mimetype });
+
+        if (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          throw uploadError;
+        }
+
+        // الحصول على رابط الصورة العام
+        const { data: publicUrlData, error: urlError } = await supabase
+          .storage
+          .from('images')
+          .getPublicUrl(filePath);
+
+        if (urlError) {
+          console.error('Error getting public URL:', urlError);
+          throw urlError;
+        }
+
+        const publicURL = publicUrlData.publicUrl;
+
+        // إضافة كائن الصورة إلى مصفوفة الصور الجديدة مع معرف فريد
+        imageObjects.push({ id: uuidv4(), url: publicURL, printStatus: false });
+      } else {
+        console.log(`Image ${photo.originalname} already exists in the album.`);
+      }
+    }
+
+    // دمج الصور الجديدة مع الألبوم الحالي
+    const updatedAlbum = [...existingAlbum, ...imageObjects];
+
+    // تحديث الألبوم في جدول events
+    const { error: updateError } = await supabase
+      .from('events')
+      .update({ album: updatedAlbum })
+      .eq('id', eventId);
+
+    if (updateError) {
+      console.error(`Failed to update event album for eventId ${eventId}:`, updateError.message);
+      throw new Error('Failed to update event album');
+    }
+
+    // الرد بنجاح وتحديث الألبوم
+    res.status(200).json({ success: true, album: updatedAlbum });
+  } catch (error) {
+    console.error('Error adding images:', error);
+    res.status(500).json({ success: false, message: 'Error uploading images' });
+  }
+});
+
+
+// دالة لرفع الصورة
+async function uploadImage(file) {
+  const { buffer, originalname, mimetype } = file;
+  const fileName = `${Date.now()}_${originalname}`;
+  
+  const { data, error } = await supabase.storage
+    .from('images')
+    .upload(fileName, buffer, { contentType: mimetype });
+
+  if (error) throw new Error('Failed to upload image to Supabase');
+
+  return {
+    id: uuidv4(),
+    url: `${process.env.SUPABASE_URL}/storage/v1/object/public/images/${fileName}`,
+    printStatus: false,
+  };
+}
 
 router.post('/', upload.single('file'), async (req, res) => {
     try {
@@ -49,64 +159,7 @@ router.post('/', upload.single('file'), async (req, res) => {
     }
   });
   
-// نقطة النهاية لرفع صورة الألبوم
-router.post('/:eventId/add-images', upload.array('images', 999), async (req, res) => {
-  try {
-    const { eventId } = req.params;
 
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ success: false, message: 'No files uploaded' });
-    }
-
-    // رفع الصور وحفظها ككائنات تحتوي على الحقول المطلوبة
-    const imageObjects = await Promise.all(req.files.map(async (file) => {
-      const { buffer, originalname, mimetype } = file;
-      const fileName = `${Date.now()}_${originalname}`;
-
-      const { data, error } = await supabase.storage
-        .from('images')
-        .upload(fileName, buffer, { contentType: mimetype });
-
-      if (error) {
-        throw new Error('Failed to upload image to Supabase');
-      }
-
-      // إنشاء كائن يحتوي على رابط الصورة وحالة الطباعة
-      return {
-        id: uuidv4(),
-        url: `${process.env.SUPABASE_URL}/storage/v1/object/public/images/${fileName}`,
-        printStatus: false
-      };
-    }));
-
-    const { data: existingEvent, error: fetchError } = await supabase
-      .from('events')
-      .select('album')
-      .eq('id', eventId)
-      .single();
-
-    if (fetchError) {
-      throw new Error('Failed to fetch event album');
-    }
-
-    // دمج الألبوم الحالي مع الصور الجديدة
-    const updatedAlbum = [...(existingEvent.album || []), ...imageObjects];
-
-    const { error: updateError } = await supabase
-      .from('events')
-      .update({ album: updatedAlbum })
-      .eq('id', eventId);
-
-    if (updateError) {
-      throw new Error('Failed to update event album');
-    }
-
-    res.status(200).json({ success: true, album: updatedAlbum });
-  } catch (error) {
-    console.error('Error adding images:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
 
 // نقطة النهاية لحذف صورة من الألبوم
 router.delete('/:eventId/delete-image', async (req, res) => {
