@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 // Load environment variables
 dotenv.config();
 const app = express();
-const allowedOrigins = ['https://alhamdan-tamerdarwishs-projects.vercel.app'];
+const allowedOrigins = ['https://alhamdan-1f2pl8wib-tamerdarwishs-projects.vercel.app'];
 
 // Use CORS middleware
 app.use(cors({
