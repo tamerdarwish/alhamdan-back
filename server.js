@@ -3,11 +3,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 
-
-
 // Load environment variables
 dotenv.config();
-
 const app = express();
 
 // Use CORS middleware
@@ -20,7 +17,6 @@ app.use(express.json());
 // إعداد body-parser مع تحديد الحد الأقصى
 app.use(bodyParser.json({ limit: '500mb' })); // تحديد الحد الأقصى لحجم JSON
 app.use(bodyParser.urlencoded({ limit: '500mb', extended: true })); // تحديد الحد الأقصى لـ URL-encoded
-
 app.use(cors());
 
 // Import routes
@@ -34,9 +30,6 @@ const contactRoutes = require('./routes/contactRoutes');
 const printRoutes = require('./routes/print'); 
 const adminRoutes = require('./routes/adminRoutes');
 
-
-
-
 // Use routes
 app.use('/api/events', eventsRouter);
 app.use('/api/photos', photosRouter);
@@ -47,11 +40,6 @@ app.use('/api/products', productsRoutes);
 app.use('/api/contact', contactRoutes); 
 app.use('/api/print', printRoutes); 
 app.use('/admin', adminRoutes);
-
-
-
-
-
 
 // Start the server
 const PORT = process.env.PORT ;

@@ -291,12 +291,14 @@ router.delete('/:eventId/delete-images', async (req, res) => {
 
   // نقطة النهاية لحفظ العلامة المائية
   router.post('/watermark/:fileName', async (req, res) => {
+
     
     try {
       console.log('Endpoint hit'); // تأكيد وصول الطلب
   
       const { fileName } = req.params;
       const { watermark } = req.body; // استلام watermark من الجسم (body)
+      const {eventId} = req.body;
   
       // التحقق من صحة قيمة watermark
       const validWatermarkSettings = ['بدون علامة مائية', 'علامة مائية جزئية', 'علامة مائية كاملة'];
@@ -306,7 +308,7 @@ router.delete('/:eventId/delete-images', async (req, res) => {
       }
   
       // تحميل الصورة الأصلية من Supabase باستخدام fetch
-      const response = await fetch(`${process.env.SUPABASE_URL}/storage/v1/object/public/images/${fileName}`);
+      const response = await fetch(`${process.env.SUPABASE_URL}/storage/v1/object/public/images/images/${eventId}/${fileName}`);
   
       if (!response.ok) {
         throw new Error('Failed to fetch image from Supabase');

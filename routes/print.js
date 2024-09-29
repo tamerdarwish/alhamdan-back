@@ -12,6 +12,7 @@ router.post('/upload', upload.array('photos'), async (req, res) => {
   const { customer_name, customer_email, sizes, copies } = req.body; // جلب بيانات الحجم والنسخ
   const photos = req.files;
   const photoObjects = [];
+console.log( req.body);
 
   try {
     for (let i = 0; i < photos.length; i++) {
