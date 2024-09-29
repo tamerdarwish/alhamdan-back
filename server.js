@@ -6,11 +6,14 @@ const bodyParser = require('body-parser');
 // Load environment variables
 dotenv.config();
 const app = express();
+const allowedOrigins = ['https://alhamdan-front.vercel.app'];
 
 // Use CORS middleware
 app.use(cors({
-    origin: 'http://localhost:3000', // استبدل هذا بالنطاق الذي يستخدمه العميل
-  }));
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true // إذا كنت بحاجة إلى إرسال ملفات تعريف الارتباط
+}));
   
 app.use(express.json());
 
