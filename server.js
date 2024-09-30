@@ -6,11 +6,11 @@ const bodyParser = require('body-parser');
 // Load environment variables
 dotenv.config();
 const app = express();
-const allowedOrigins = ['https://alhamdan-1f2pl8wib-tamerdarwishs-projects.vercel.app'];
+const allowedOrigins = ['http://26.206.131.69:3000','http://localhost:3000'];
 
 // Use CORS middleware
 app.use(cors({
-  origin: allowedOrigins,
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true // إذا كنت بحاجة إلى إرسال ملفات تعريف الارتباط
 }));
