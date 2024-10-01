@@ -147,4 +147,34 @@ router.put('/:eventId/album/:imageId', async (req, res) => {
   }
 });
 
+// دالة للتحقق مما إذا كان كود الوصول موجودًا بالفعل
+router.get('/check-code/:access_code', async (req, res) => {
+  const { access_code } = req.params;
+
+  try {
+    // البحث عن مناسبة تحتوي على نفس كود الوصول
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('access_code', access_code);
+
+    if (error) {
+      console.error('Database error:', error);
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    if (data.length > 0) {
+      // إذا تم العثور على مناسبة بهذا الكود
+      res.json({ exists: true, message: 'Access code already exists.' });
+    } else {
+      // إذا لم يتم العثور على مناسبة
+      res.json({ exists: false, message: 'Access code is available.' });
+    }
+  } catch (error) {
+    console.error('Error checking access code:', error);
+    res.status(500).json({ error: 'Failed to check access code' });
+  }
+});
+
+
 module.exports = router;
