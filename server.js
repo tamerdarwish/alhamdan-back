@@ -10,7 +10,7 @@ const allowedOrigins = ['http://26.206.131.69:3000','http://localhost:3000'];
 
 // Use CORS middleware
 app.use(cors({
-  origin: allowedOrigins,
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'],
   credentials: true // إذا كنت بحاجة إلى إرسال ملفات تعريف الارتباط
 }));
