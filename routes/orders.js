@@ -9,7 +9,9 @@ router.post('/', async (req, res) => {
     totalPrice,
     fullName,
     address,
-    phoneNumber
+    phoneNumber,
+    deliveryOption
+
   } = req.body;
 
   if (!cartItems || !totalPrice) {
@@ -25,7 +27,8 @@ router.post('/', async (req, res) => {
         customer_name: fullName,
         address: address,
         phone_number: phoneNumber,
-        status: false
+        status: false,
+        delivery:deliveryOption
       }
     ]);
 

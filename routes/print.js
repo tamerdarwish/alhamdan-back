@@ -9,7 +9,7 @@ const pool = new Pool(); // إعداد اتصال بقاعدة البيانات
 
 // نقطة نهاية لرفع الصور
 router.post('/upload', upload.array('photos'), async (req, res) => {
-  const { customer_name, customer_email, sizes, copies } = req.body; // جلب بيانات الحجم والنسخ
+  const { customer_name, customer_email, sizes, copies,delivery_method,address,phone_number } = req.body; // جلب بيانات الحجم والنسخ
   const photos = req.files;
   const photoObjects = [];
 console.log( req.body);
@@ -53,7 +53,10 @@ console.log( req.body);
         customer_name,
         customer_email,
         photos: photoObjects,
-        status: false
+        status: false,
+        delivery_method,
+        address,
+        phone_number,
       });
 
     if (insertError) {
