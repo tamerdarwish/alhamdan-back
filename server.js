@@ -33,6 +33,8 @@ const contactRoutes = require('./routes/contactRoutes');
 const printRoutes = require('./routes/print'); 
 const adminRoutes = require('./routes/adminRoutes');
 const audiosRoutes = require('./routes/audios')
+const businessesRoutes = require('./routes/businesses')
+
 
 // Use routes
 app.use('/api/events', eventsRouter);
@@ -45,6 +47,8 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/print', printRoutes); 
 app.use('/admin', adminRoutes);
 app.use('/api/audios', audiosRoutes)
+app.use('/api/businesses', businessesRoutes)
+
 
 // Start the server
 const PORT = process.env.PORT ;
