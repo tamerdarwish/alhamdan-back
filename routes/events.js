@@ -147,6 +147,37 @@ router.put('/:eventId/album/:imageId', async (req, res) => {
   }
 });
 
+router.put('/:eventId/album-copies/:imageId', async (req, res) => {
+  const { eventId, imageId } = req.params;
+  const { copies } = req.body;
+
+  try {
+    const { data: event, error: fetchError } = await supabase.from('events').select('album').eq('id', eventId).single();
+    if (fetchError || !event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    const album = event.album.map(image => JSON.parse(image));
+    const updatedAlbum = album.map((image) => (image.id === imageId ? { ...image, copies } : image));
+
+    const updatedAlbumJSON = updatedAlbum.map(image => JSON.stringify(image));
+
+    const { data, error: updateError } = await supabase
+      .from('events')
+      .update({ album: updatedAlbumJSON })
+      .eq('id', eventId)
+      .select('*')
+      .single();
+
+    if (updateError) throw updateError;
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error updating album print status:', error);
+    res.status(500).json({ error: 'Failed to update album' });
+  }
+});
+
 // دالة للتحقق مما إذا كان كود الوصول موجودًا بالفعل
 router.get('/check-code/:access_code', async (req, res) => {
   const { access_code } = req.params;

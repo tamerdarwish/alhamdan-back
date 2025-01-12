@@ -82,7 +82,8 @@ router.post('/:eventId/add-images', upload.array('images'), async (req, res) => 
         const publicURL = publicUrlData.publicUrl;
 
         // إضافة كائن الصورة إلى مصفوفة الصور الجديدة مع معرف فريد
-        imageObjects.push({ id: uuidv4(), url: publicURL, printStatus: false });
+        
+        imageObjects.push({ id: uuidv4(), url: publicURL, printStatus: false, copies: 1 });
       } else {
         console.log(`Image ${photo.originalname} already exists in the album.`);
       }
@@ -126,6 +127,7 @@ async function uploadImage(file) {
     id: uuidv4(),
     url: `${process.env.SUPABASE_URL}/storage/v1/object/public/images/${fileName}`,
     printStatus: false,
+    copies: 1 
   };
 }
 
