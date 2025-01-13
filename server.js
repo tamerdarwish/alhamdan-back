@@ -20,8 +20,6 @@ app.use(express.json());
 // إعداد body-parser مع تحديد الحد الأقصى
 app.use(bodyParser.json({ limit: '500mb' })); // تحديد الحد الأقصى لحجم JSON
 app.use(bodyParser.urlencoded({ limit: '500mb', extended: true })); // تحديد الحد الأقصى لـ URL-encoded
-app.use(cors());
-
 // Import routes
 const eventsRouter = require('./routes/events');
 const photosRouter = require('./routes/photos');
